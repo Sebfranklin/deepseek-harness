@@ -41,7 +41,7 @@
   );
   contain: layout;
   cursor: pointer;
-  pointer-events: auto;
+  pointer-events: none;
   transform: translateY(-50%);
 }
 
@@ -49,6 +49,7 @@
    the transcript, and gradient fades over the ends that can still scroll. */
 .scroller {
   position: relative;
+  pointer-events: none;
   max-height: inherit;
   overflow-y: auto;
   overscroll-behavior: contain;
@@ -83,6 +84,10 @@
 
 .mark {
   position: absolute;
+  /* The rail's band ignores pointers; its dots do not. A horizontal drag across
+     the transcript passes through everything except the marks themselves. */
+  pointer-events: auto;
+  touch-action: manipulation;
   top: 0;
   right: 0;
   left: 0;
@@ -183,14 +188,15 @@
 
 .previewPrompt {
   font: var(--dsw-font-xs-strong-13);
-  -webkit-line-clamp: 1;
+  -webkit-line-clamp: 3;
 }
 
 .previewResponse {
   margin-top: 4px;
   color: var(--dsw-alias-label-caption);
   font: var(--dsw-font-xxs-12);
-  -webkit-line-clamp: 3;
+  -webkit-line-clamp: 2;
+  opacity: 0.75;
 }
 
 @keyframes dsh-turn-preview-enter {
@@ -204,9 +210,19 @@
   50% { opacity: 0.35; }
 }
 
+/* A phone keeps the map. Hiding it below 900px meant the rail existed only on a
+   desktop, which is exactly where it is least needed: on mobile it is the only
+   way to jump through a long conversation. Narrow the band, keep it reachable. */
 @container (max-width: 900px) {
   .frame {
-    display: none;
+    padding-inline: 4px;
+  }
+}
+
+/* A thumb needs a bigger target than a 10px tick, and the marks stay dots. */
+@media (pointer: coarse) {
+  .mark {
+    height: 16px;
   }
 }
 

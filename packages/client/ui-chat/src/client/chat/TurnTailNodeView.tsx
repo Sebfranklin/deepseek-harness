@@ -26,7 +26,7 @@ function lastContent(snapshot: ChatSnapshot, turn: number, skipWarning: boolean)
 
 /** Turn-local actions and feature tail over the Location index, independent of Assistant placement. */
 export const TurnTailNodeView = memo(function TurnTailNodeView({
-  node, openFile, forkAt, renderSlot, t, useAccess, useChat, usePerformanceUsage,
+  node, openFile, forkAt, renderSlot, t, useAccess, useChat, usePerformanceUsage, inputActions,
 }: TurnTailNodeViewProps) {
   const detailed = usePerformanceUsage(mode => mode) === 'detailed'
   const forkAllowed = useAccess('session/fork')
@@ -62,6 +62,11 @@ export const TurnTailNodeView = memo(function TurnTailNodeView({
     >
       {tail}
       <MessageIconActions
+        onReference={() => {
+          // Quote, not copy: the reply becomes a reference block in the composer,
+          // and pressing again appends a second one.
+          inputActions.insertQuote(assistantText(closing.blocks))
+        }}
         text={assistantText(closing.blocks)}
         time={closing.time}
         clock="end"

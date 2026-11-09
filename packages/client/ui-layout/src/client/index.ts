@@ -8,6 +8,8 @@
  * presenter, which projects ctx.theme snapshots onto document.body.
  */
 import type { Context as ClientContext } from '@deepseek-ai/cordis'
+import type {} from '@deepseek-ai/dsh-api-job-controller/client'
+import type {} from '@deepseek-ai/dsh-api-session-controller/client'
 import type {} from '@deepseek-ai/dsh-client-locale/client'
 import type {} from '@deepseek-ai/dsh-client-ui-renderer/client'
 import type {} from '@deepseek-ai/dsh-client-ui-session/client'
@@ -16,6 +18,7 @@ import type { HostObservable, SnapshotSelectorHook } from '@deepseek-ai/dsh-clie
 import type { PanelInfo } from './service.ts'
 import { AppFrame } from './AppFrame.tsx'
 import type { AppFrameInjected } from './AppFrame.tsx'
+import { installJobCues, installSessionCues, playCue, primeNotificationCues } from './notification-cues.ts'
 import { createLayoutStore } from './stores.ts'
 import { LayoutController } from './service.ts'
 import type { ShortcutCommandId } from '@deepseek-ai/dsh-client-shortcuts/client'
@@ -151,7 +154,7 @@ export interface RightbarOwnerProps {
 }
 
 /** Required services (cordis fiber inject — the loader passes all module exports as an object plugin). */
-export const inject = ['slots', 'theme', 'locale', 'shortcuts']
+export const inject = ['slots', 'theme', 'locale', 'shortcuts', 'uiSession', 'sessions']
 
 /**
  * Client plugin body: provide ctx.layout, then one register() call — AppFrame
@@ -241,4 +244,32 @@ export function apply(ctx: ClientContext): void {
       presenter.dispose()
     }
   }, 'ui-layout: theme presenter')
+
+  // Notification cues: the audible half of what the frame already shows. The
+  // Session status source folds turn/end into `running` and carries pending
+  // interactions; bindings answer whether the settled Session recorded an
+  // agent failure; the jobs roster answers for the Session in the main panel.
+  ctx.effect(() => {
+    const releaseGesture = primeNotificationCues()
+    const releaseSessions = installSessionCues(ctx.uiSession.sessionStatus, playCue, {
+      attended: () => document.visibilityState === 'visible' && document.hasFocus(),
+      failed: sessionId => ctx.sessions.binding(sessionId)?.session.getSnapshot().lastAgentError !== null,
+    })
+    const jobs = ctx.get('jobs')
+    const releaseJobs = jobs === undefined ? () => {} : installJobCues(jobs, {
+      get: () => {
+        const state = ctx.sessions.list.getSnapshot()
+        for (const id of state.ids) {
+          if ((state.byId[id]?.retainedBy.mainView ?? 0) > 0) return id
+        }
+        return undefined
+      },
+      subscribe: listener => ctx.sessions.list.subscribe(listener),
+    }, playCue)
+    return () => {
+      releaseJobs()
+      releaseSessions()
+      releaseGesture()
+    }
+  }, 'ui-layout: notification cues')
 }

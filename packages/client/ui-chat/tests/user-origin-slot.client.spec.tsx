@@ -136,4 +136,21 @@ describe('official user renderer origin seat', () => {
     expect(steeringRow.querySelector('[data-test-origin]')).toBeNull()
     expect(view.container.querySelector('[data-chat-steering-batch]')).toBeNull()
   })
+
+  it('puts the message text back into the composer from the action row', () => {
+    const span = { start: 3, end: 3, draftRev: 4 }
+    const insertText = vi.fn(() => true)
+    const captureInsertion = vi.fn(() => span)
+    const view = render(<UserMessageNodeView
+      {...viewProps(userData)}
+      {...userSlots}
+      inputActions={{ insertText, captureInsertion } as never}
+      renderSlotChain={() => null}
+    />)
+
+    view.getByRole('button', { name: zh['message.repush'] }).click()
+
+    expect(captureInsertion).toHaveBeenCalledOnce()
+    expect(insertText).toHaveBeenCalledExactlyOnceWith('hello', span)
+  })
 })

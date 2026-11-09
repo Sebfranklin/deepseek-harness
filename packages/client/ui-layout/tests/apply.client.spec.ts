@@ -61,6 +61,21 @@ async function bench() {
   await ctx.plugin(ShortcutsService).await()
   // ui-theme's Appearance row binds a durable scope through these two.
   ctx.provide('remote', { $on: () => () => {} } as never)
+  // Notification cues read the Session status source; a quiet fixture keeps
+  // every other frame behavior observable.
+  ctx.provide('uiSession', { sessionStatus: {
+    getSnapshot: () => new Map(),
+    subscribe: () => () => {},
+  } } as never)
+  // Notification cues read the Session list and bindings; an empty fixture
+  // keeps every other frame behavior observable.
+  ctx.provide('sessions', {
+    list: {
+      getSnapshot: () => ({ ids: [], byId: {}, phase: 'ready', projectionsBySession: {} }),
+      subscribe: () => () => {},
+    },
+    binding: () => undefined,
+  } as never)
   ctx.provide('configForms', { developerTools: { enabled: createSnapshotStore(true) }, get: () => stubConfigForm().scope } as never)
   await ctx.plugin({ inject: themeInject, apply: themeApply }).await()
   await slotsFiber.await()
@@ -77,7 +92,7 @@ async function bench() {
 
 describe('ui-layout client apply', () => {
   it('declares its service dependencies', () => {
-    expect(inject).toEqual(['slots', 'theme', 'locale', 'shortcuts'])
+    expect(inject).toEqual(['slots', 'theme', 'locale', 'shortcuts', 'uiSession', 'sessions'])
   })
 
   it('provides ctx.layout and declares the root-scoped frame slots', async () => {

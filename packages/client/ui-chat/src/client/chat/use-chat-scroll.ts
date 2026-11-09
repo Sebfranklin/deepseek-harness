@@ -81,6 +81,10 @@ export function useChatScroll(input: ChatScrollInput): ChatScrollState {
     }
     if (ownInput) {
       navigation.cancel()
+      // A reader who scrolled back into history keeps their place when they send:
+      // their anchor is where they are reading, not where they typed from. Only a
+      // reader already at the tail follows their own message down.
+      if (!reading.followingTail) return
       if (current.deferCompletedTurns && reading.followInputFold(true)) return
       // Steering lands at once: the running Turn keeps streaming above its echo, and that growth would push
       // the echo down under a native animation.

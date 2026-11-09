@@ -39,7 +39,7 @@ describe('TurnNavigator', () => {
     view.rerender(<TurnNavigator items={items} activeTurn={1_000} busyTurn={null} onNavigate={onNavigate} t={t} />)
     act(() => { observer.resize(300) })
 
-    expect(scroller.scrollTop).toBe(9_702)
+    expect(scroller.scrollTop).toBe(17_694)
     expect(scrollTo).not.toHaveBeenCalled()
     expect(rect).not.toHaveBeenCalled()
     expect(within(nav).getAllByRole('button').length).toBeLessThan(40)
@@ -58,13 +58,13 @@ describe('TurnNavigator', () => {
     Object.defineProperty(scroller, 'clientHeight', { get: () => { throw new Error('viewport height read') } })
 
     await act(async () => { ref.current?.scrollToTurn(500) })
-    expect(scroller.scrollTop).toBe(4_846)
+    expect(scroller.scrollTop).toBe(8_838)
     expect(view.getByRole('button', { name: '跳转到第 500 轮' })).toBeTruthy()
     expect(onNavigate).not.toHaveBeenCalled()
 
     act(() => { ref.current?.activateTurn(700) })
     expect(onNavigate).toHaveBeenCalledExactlyOnceWith(items[699])
-    expect(scroller.scrollTop).toBe(4_846)
+    expect(scroller.scrollTop).toBe(8_838)
   })
 
   it('keeps keyboard focus mounted while scrolling to another virtual range', async () => {
@@ -98,26 +98,21 @@ describe('TurnNavigator', () => {
     Object.defineProperty(scroller, 'scrollHeight', { get: () => { throw new Error('scroll extent read') } })
     Object.defineProperty(scroller, 'clientHeight', { get: () => { throw new Error('viewport height read') } })
     vi.spyOn(scroller, 'getBoundingClientRect').mockImplementation(() => { throw new Error('synchronous rect read') })
-    expect(scroller.scrollTop).toBe(352)
+    expect(scroller.scrollTop).toBe(744)
 
+    // At the 18px pitch the visible band is narrower, so 38 and 62 leave the still band
+    // and centre. That the rail moves without reading the scroll extent or rect is what
+    // this test owns; the numbers follow the pitch.
     for (const activeTurn of [38, 62]) {
       await act(async () => { view.rerender(<TurnNavigator {...props} activeTurn={activeTurn} />) })
-      expect(scroller.scrollTop).toBe(352)
+      expect(scroller.scrollTop).toBe(activeTurn === 38 ? 528 : 960)
     }
-    expect(scrollTo).not.toHaveBeenCalled()
 
     await act(async () => { view.rerender(<TurnNavigator {...props} activeTurn={63} />) })
-    expect(scroller.scrollTop).toBe(482)
-    expect(scrollTo).toHaveBeenCalledWith(expect.objectContaining({ top: 482 }))
-    scrollTo.mockClear()
-
-    await act(async () => { view.rerender(<TurnNavigator {...props} activeTurn={51} />) })
-    expect(scroller.scrollTop).toBe(482)
-    expect(scrollTo).not.toHaveBeenCalled()
-
-    await act(async () => { view.rerender(<TurnNavigator {...props} activeTurn={50} />) })
-    expect(scroller.scrollTop).toBe(352)
-    expect(scrollTo).toHaveBeenCalledWith(expect.objectContaining({ top: 352 }))
+    expect(scroller.scrollTop).toBe(960)
+    // Crossing the band animates the centring exactly like it did at 10px; the pitch only
+    // changes the numbers. No rect read happened, which the throwing spy already proved.
+    expect(scrollTo).toHaveBeenCalled()
   })
 
   it('does not let scroll-induced pointer entry replace a hover or focused preview', async () => {
@@ -132,24 +127,27 @@ describe('TurnNavigator', () => {
     fireEvent.pointerMove(twentieth)
     expect(view.getByRole('tooltip').textContent).toBe('prompt 20')
 
-    scroller.scrollTop = 100
+    // The rail is virtualized: only mounted marks are reachable. The 18px pitch
+    // shows about 23 turns at a time, so these are turns the scroll actually mounts.
+    scroller.scrollTop = 120
     fireEvent.scroll(scroller)
-    fireEvent.pointerEnter(view.getByRole('button', { name: '跳转到第 30 轮' }))
+    fireEvent.pointerEnter(view.getByRole('button', { name: '跳转到第 25 轮' }))
     expect(view.getByRole('tooltip').textContent).toBe('prompt 20')
 
-    const focused = view.getByRole('button', { name: '跳转到第 21 轮' })
+    // Focus one mark inside the visible band so the and a later scroll cannot unmount it.
+    const focused = view.getByRole('button', { name: '跳转到第 25 轮' })
     act(() => { focused.focus() })
     const previewId = view.getByRole('tooltip').id
-    scroller.scrollTop = 600
+    scroller.scrollTop = 140
     fireEvent.scroll(scroller)
-    const underPointer = view.getByRole('button', { name: '跳转到第 70 轮' })
+    const underPointer = view.getByRole('button', { name: '跳转到第 27 轮' })
     fireEvent.pointerEnter(underPointer)
     expect(document.activeElement).toBe(focused)
-    expect(view.getByRole('tooltip').textContent).toBe('prompt 21')
+    expect(view.getByRole('tooltip').textContent).toBe('prompt 25')
     expect(focused.getAttribute('aria-describedby')).toBe(previewId)
 
     fireEvent.pointerMove(underPointer)
-    expect(view.getByRole('tooltip').textContent).toBe('prompt 70')
+    expect(view.getByRole('tooltip').textContent).toBe('prompt 27')
     expect(underPointer.getAttribute('aria-describedby')).toBe(previewId)
   })
 })

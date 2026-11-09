@@ -1565,7 +1565,9 @@ describe('ChatView', () => {
     const nav = view.getByRole('navigation', { name: '轮次导航' })
     const scroller = nav.querySelector('[class*="scroller"]') as HTMLElement
     const latest = await within(nav).findByRole('button', { name: '跳转到第 60 轮' })
-    expect(scroller.scrollTop).toBe(302)
+    // Marks sit on an 18px pitch, so the rail's content is taller than at 10px: the
+    // frame scrolls further to centre the latest mark. The value tracks the pitch.
+    expect(scroller.scrollTop).toBe(774)
     expect(within(nav).getAllByRole('button').length).toBeLessThan(60)
     expect(latest.getAttribute('aria-current')).toBe('true')
     scroller.scrollTop = 0
@@ -4067,13 +4069,14 @@ describe('ChatView', () => {
       h.setChat({ nodes: [user(1, 'old'), assistant(2, 'b'), user(5, 'later'), assistant(6, 'a')] })
     })
     expect(scroller.scrollTop).toBe(680) // reader offset 80 + the anchored row's 600px shift
-    // A new trailing user bubble (own words) force-scrolls to the bottom.
+    // A reader scrolled back into history keeps their place when they send: the anchor is
+    // where they are reading, not where they typed from. They stay at 680.
     act(() => {
       h.setChat({
         nodes: [user(1, 'old'), assistant(2, 'b'), user(5, 'later'), assistant(6, 'a'), user(9, 'mine')],
       })
     })
-    expect(scroller.scrollTop).toBe(1200)
+    expect(scroller.scrollTop).toBe(680)
   })
 
   it('back-to-bottom cancels an in-flight paging anchor', () => {

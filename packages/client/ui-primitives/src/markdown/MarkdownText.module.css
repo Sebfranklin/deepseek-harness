@@ -217,7 +217,7 @@
   padding-bottom: 0;
 }
 
-@media (hover: hover) {
+@media (hover: hover) and (pointer: fine) {
   .tableScroll:global(.md-table-wide) {
     overflow-x: hidden;
     padding-bottom: var(--dsh-scrollbar-width, 5px);

@@ -50,6 +50,10 @@ Windows Electron 的 `data-windows-titlebar` 标记在所有列上方预留顶�
 
 呈现器消费解析后的主题快照，并投影到 document：`html { color-scheme }` 驱动原生 UA 控件，依据当前配色方案设置 `body[data-ds-dark-theme]`，把主题的别名 token、`--dsh-content-font-size`、`--dsh-code-font-size`、`--dsh-terminal-font-size` 以及每个非空的 `--dsh-font-family-<role>` 列表设为 body 上的内联变量，并持有一个 `<meta name="theme-color">`，其内容随计算后的 body 背景色更新。对呈现器执行 dispose（资源释放）时，它会连同其他全局写入一起移除自己的元数据节点。
 
+### 通知提示音
+
+四段简短的 WebAudio 音型分别播报不同事件，音高走向与音色各不相同：完成是上行音，失败是下行三角波，等待确认或回答是三连短音，后台任务结束是一个中音。完成音仅在页面隐藏、失焦，或停止的 Session 并非主面板展示对象时播放；失败与待回答即使页面在前台也会播放，因为两者都在等人处理。成功类提示音在 250 毫秒窗口内合并，避免并行回合叠成和弦；失败与待处理从不合并。任务提示音只覆盖主面板中的 Session（该 Session 的任务列表处于监视中）。浏览器在没有用户手势时不会播放音频，因此框架在首次指针或按键操作时创建或恢复一个页面生命周期内复用的 `AudioContext`；从未发生手势的页面保持静音。该功能不涉及设置项、音频资源或服务端往返。
+
 -----
 
 <a id="understand-the-implementation"></a>

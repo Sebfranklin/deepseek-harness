@@ -26,7 +26,7 @@ export interface TurnNavigatorHandle {
 }
 
 /** Fixed pitch between neighbouring marks; overflow scrolls inside the frame. */
-const TURN_SPACING_PX = 10
+const TURN_SPACING_PX = 18
 /** Rail padding above the first mark and below the last one, per end. */
 const RAIL_INSET_PX = 6
 /** Fade band the mask reserves at a scrollable end. */
@@ -44,13 +44,15 @@ interface TurnMarkProps extends Pick<TurnNavigatorProps, 'onNavigate' | 't'> {
   readonly active: boolean
   readonly busy: boolean
   readonly previewId: string | undefined
+  /** Whether this mark's preview is already open (hover, or a first tap). */
+  readonly previewed: boolean
   readonly registerElement: (element: HTMLButtonElement | null) => void
   readonly onPreview: (turn: number | null) => void
   readonly onFocusChange: (turn: number | null) => void
 }
 
 const TurnMark = memo(function TurnMark({
-  item, index, active, busy, previewId, registerElement, onNavigate, onPreview, onFocusChange, t,
+  item, index, active, busy, previewId, previewed, registerElement, onNavigate, onPreview, onFocusChange, t,
 }: TurnMarkProps) {
   const classes = [css.mark]
   if (item.anchor.kind === 'unloaded') classes.push(css.markUnloaded)
@@ -71,7 +73,13 @@ const TurnMark = memo(function TurnMark({
       aria-busy={busy ? 'true' : undefined}
       aria-describedby={previewId}
       onPointerMove={() => { onPreview(item.turn) }}
-      onClick={() => { onNavigate(item) }}
+      onClick={() => {
+        // A coarse pointer has no hover: the first tap opens the preview so the
+        // prompt can be read, the second tap jumps. A mouse keeps one-click jump.
+        const coarse = typeof matchMedia === 'function' && matchMedia('(pointer: coarse)').matches
+        if (coarse && !previewed) { onPreview(item.turn); return }
+        onNavigate(item)
+      }}
       onFocus={() => { onFocusChange(item.turn) }}
       onBlur={() => { onFocusChange(null) }}
     />
@@ -254,6 +262,7 @@ function TurnNavigatorRail(
                   active={item.turn === activeTurn}
                   busy={item.turn === busyTurn}
                   previewId={item.turn === previewTurn ? previewId : undefined}
+                  previewed={item.turn === previewTurn}
                   registerElement={virtualizer.measureElement}
                   onNavigate={onNavigate}
                   onPreview={setPreviewTurn}
@@ -274,9 +283,13 @@ function TurnNavigatorRail(
             } as CSSProperties}
           >
             <div className={css.previewPrompt}>
-              {preview.prompt || t('chat.turnNavigation.turn', { turn: preview.turn })}
+              {preview.response
+                || preview.prompt
+                || t('chat.turnNavigation.turn', { turn: preview.turn })}
             </div>
-            {preview.response !== '' && <div className={css.previewResponse}>{preview.response}</div>}
+            {preview.response !== '' && preview.prompt !== '' && (
+              <div className={css.previewResponse}>{preview.prompt}</div>
+            )}
           </div>
         )}
       </nav>

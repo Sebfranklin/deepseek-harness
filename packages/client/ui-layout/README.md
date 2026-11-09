@@ -50,6 +50,10 @@ The root publishes `--dsh-frame-top-clearance` for the reserved strip (48px on m
 
 The presenter consumes resolved theme snapshots and projects them onto the document: `html { color-scheme }` for native UA chrome, `body[data-ds-dark-theme]` from the active color scheme, the theme's alias tokens, `--dsh-content-font-size`, `--dsh-code-font-size`, `--dsh-terminal-font-size`, and each non-empty `--dsh-font-family-<role>` list as inline variables on body, and one owned `<meta name="theme-color">` whose content follows the computed body background. Disposing the presenter removes its metadata node with its other global writes.
 
+### Notification cues
+
+Four short WebAudio figures announce what just happened, each with its own pitch contour and timbre: completion rises, failure falls through a low triangle, a pending approval or question is a quick triple blip, and a finished background job is one mid note. Completion sounds only while the page is hidden or unfocused, or when the Session that stopped is not the one filling the main panel; a failure and a pending answer sound even while the page is focused, because both wait on the person. Success cues collapse inside a 250 ms burst window so parallel turns do not stack into a chord; failures and attention never suppress. Job cues cover the Session in the main panel, where its job roster is watched. Browsers start no audio without a user gesture, so the frame creates or resumes one page-lifetime `AudioContext` on the first pointer or key press, and a page that never sees a gesture stays silent. No setting, asset, or server round trip is involved.
+
 -----
 
 <a id="understand-the-implementation"></a>

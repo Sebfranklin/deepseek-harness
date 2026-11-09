@@ -3,7 +3,8 @@
 
 import { useId, type ReactNode } from 'react'
 import {
-  IconBranchOutlineRegular, IconCheckOutlineRegular, IconCopyOutlineRegular, Tooltip, useClipboardCopy,
+  IconBranchOutlineRegular, IconCheckOutlineRegular, IconCopyOutlineRegular, IconEditOutlineRegular,
+  IconRightUpOutlineRegular, Tooltip, useClipboardCopy,
 } from '@deepseek-ai/dsh-client-ui-primitives'
 import type { ChatViewSlotProps } from '../contract/slots.ts'
 import { formatMessageClock } from './message-chrome.ts'
@@ -23,6 +24,16 @@ export interface MessageIconActionsProps {
   branchUnavailable?: boolean | undefined
   /** Parent layout class composed onto the actions row. */
   className?: string | undefined
+  /**
+   * Put this message's text back into the composer so it can be edited and sent
+   * again; omission hides the repush action.
+   */
+  onRepush?: (() => void) | undefined
+  /**
+   * Attach this reply to the next message as a quoted reference; each press appends
+   * another one, so a follow-up can point at several replies at once.
+   */
+  onReference?: (() => void) | undefined
   /**
    * Slot-rendered actions owned by independent plugins, placed between the
    * built-in copy and branch controls.
@@ -44,7 +55,7 @@ export interface MessageIconActionsProps {
  */
 export function MessageIconActions({
   text, time, clock, onBranch, branchUnavailable = false, className,
-  extraActions, usageAction, t,
+  onRepush, onReference, extraActions, usageAction, t,
 }: MessageIconActionsProps) {
   const day = useCalendarDay()
   const reasonId = useId()
@@ -62,6 +73,20 @@ export function MessageIconActions({
           {copied ? <IconCheckOutlineRegular /> : <IconCopyOutlineRegular />}
         </button>
       </Tooltip>
+      {onRepush !== undefined && (
+        <Tooltip label={t('message.repush')} side="bottom">
+          <button type="button" className={css.action} aria-label={t('message.repush')} onClick={onRepush}>
+            <IconEditOutlineRegular />
+          </button>
+        </Tooltip>
+      )}
+      {onReference !== undefined && (
+        <Tooltip label={t('message.reference')} side="bottom">
+          <button type="button" className={css.action} aria-label={t('message.reference')} onClick={onReference}>
+            <IconRightUpOutlineRegular />
+          </button>
+        </Tooltip>
+      )}
       {extraActions}
       {onBranch !== undefined && (
         <Tooltip label={branchUnavailable ? t('message.branchUnavailable') : t('message.branch')} side="bottom" openOnClick={branchUnavailable}>
